@@ -227,9 +227,6 @@ class Game:
 
         return terrain_rect
 
-    def safe_end(self):
-        pygame.quit()
-
     def condition_check(self, terrain_rect):
         x = terrain_rect[0]
         y = terrain_rect[1]
@@ -242,13 +239,6 @@ class Game:
             dialog_box(flag, title, message)
             return 0
 
-        elif col > 9:
-            flag = "err"
-            title = "ERROR! SHIP_OUT_OF_RANGE\t"
-            message = "You are trying to deploy outside your own area.\nPlease choose one grid on the left side of yellow line."
-            dialog_box(flag, title, message)
-            return 0
-
         elif self.phase == "deploy_horizontal":
             if col > 7:
                 flag = "err"
@@ -256,6 +246,13 @@ class Game:
                 message = "Your ship is not fully on your area.\t\nPlease select other grid!\t\t"
                 dialog_box(flag, title, message)
 
+                return 0
+
+            elif col > 9:
+                flag = "err"
+                title = "ERROR! SHIP_OUT_OF_RANGE\t"
+                message = "You are trying to deploy outside your own area.\nPlease choose one grid on the left side of yellow line."
+                dialog_box(flag, title, message)
                 return 0
 
             else:
@@ -279,6 +276,13 @@ class Game:
                 dialog_box(flag, title, message)
                 return 0
 
+            elif col > 9:
+                flag = "err"
+                title = "ERROR! SHIP_OUT_OF_RANGE\t"
+                message = "You are trying to deploy outside your own area.\nPlease choose one grid on the left side of yellow line."
+                dialog_box(flag, title, message)
+                return 0
+
             else:
                 check = [0 for i in range(3)]
                 for i in range(3):
@@ -292,7 +296,14 @@ class Game:
                         dialog_box(flag, title, message)
                         return 0
 
-        # Clear, sir! Ready to deploy, sir!
+        elif self.phase == "game_started":
+            if col < 10:
+                flag = "err"
+                title = "ERROR! ATTACK_ERROR"
+                messsage = "You are trying to attack your own area.\t\nAre you a traitor?\nPlease select grid on the right side of yellow line"
+                dialog_box(flag, title, messsage)
+                return 0
+
         return 1
 
     def deploy_my_ship(self, terrain_rect, ships):
@@ -322,7 +333,7 @@ class Game:
             self.phase = "deploy_vertical"
 
         elif action == "ready":
-            self.phase = "ready"
+            self.phase = "game_started"  # Change it after you properly do it
 
         elif action == "help":
             # Create dialog box for help
@@ -341,10 +352,134 @@ class Game:
             message = part1 + part2 + part3 + part4 + part5 + part6 + part7
             dialog_box(flag, title, message)
 
-    def switch_phase(self):
-        pass
+        elif action == "game":
+            pass
+
+    def menu_switch(self, pos, rects, terrain, ships):
+        if self.phase == "idle":
+            if rects["button_horizontal"].collidepoint(pos):
+                self.menu_action("button_horizontal")
+
+            elif rects["button_vertical"].collidepoint(pos):
+                self.menu_action("button_vertical")
+
+            elif rects["status"].collidepoint(pos):
+                self.menu_action("status")
+
+            elif rects["about"].collidepoint(pos):
+                self.menu_action("about")
+
+            elif rects["help"].collidepoint(pos):
+                self.menu_action("help")
+
+            elif rects["decor"].collidepoint(pos):
+                self.menu_action("decor")
+
+            elif rects["ready"].collidepoint(pos):
+                self.menu_action("ready")
+
+        elif self.phase == "deploy_horizontal":
+            if rects["button_horizontal"].collidepoint(pos):
+                self.menu_action("button_horizontal")
+
+            elif rects["button_vertical"].collidepoint(pos):
+                self.menu_action("button_vertical")
+
+            elif rects["status"].collidepoint(pos):
+                self.menu_action("status")
+
+            elif rects["about"].collidepoint(pos):
+                self.menu_action("about")
+
+            elif rects["help"].collidepoint(pos):
+                self.menu_action("help")
+
+            elif rects["decor"].collidepoint(pos):
+                self.menu_action("decor")
+
+            elif rects["ready"].collidepoint(pos):
+                self.menu_action("ready")
+
+            else:
+                terrain_rect = self.click_board(terrain)
+                flag = self.condition_check(terrain_rect)
+
+                if flag == 1:
+                    ships = self.deploy_my_ship(terrain_rect, ships)
+                    self.phase = "idle"
+                    return ships
+
+                else:
+                    self.phase = "deploy_horizontal"
+
+        elif self.phase == "deploy_vertical":
+            if rects["button_horizontal"].collidepoint(pos):
+                self.menu_action("button_horizontal")
+
+            elif rects["button_vertical"].collidepoint(pos):
+                self.menu_action("button_vertical")
+
+            elif rects["status"].collidepoint(pos):
+                self.menu_action("status")
+
+            elif rects["about"].collidepoint(pos):
+                self.menu_action("about")
+
+            elif rects["help"].collidepoint(pos):
+                self.menu_action("help")
+
+            elif rects["decor"].collidepoint(pos):
+                self.menu_action("decor")
+
+            elif rects["ready"].collidepoint(pos):
+                self.menu_action("ready")
+
+            else:
+                terrain_rect = self.click_board(terrain)
+                flag = self.condition_check(terrain_rect)
+
+                if flag == 1:
+                    ships = self.deploy_my_ship(terrain_rect, ships)
+                    self.phase = "idle"
+                    return ships
+
+                else:
+                    self.phase = "deploy_vertical"
+
+        elif self.phase == "ready":
+            pass
+            # Wait for server send START_GAME flag
+            # Change menu layout (Buttons, etc)
+            # Change Start Button to WAITING FOR OPPONENT with grey color
+
+        elif self.phase == "game_started":
+            terrain_rect = self.click_board(terrain)
+            self.attack_ship(terrain_rect)
+
+        elif self.phase == "waiting_server_response":
+            # Draw rest of menu buttons
+            pass
+
+    def attack_ship(self, terrain_rect):
+        x = terrain_rect[0]
+        y = terrain_rect[1]
+        flag = self.condition_check(terrain_rect)
+
+        if flag == 1:
+            col, row = self.board_position(x, y)
+            self.phase = "waiting_server_response"
+            # Change col row coordinate to player grid coordinate on server
+            # Send col row with flag "action : attack"
+
+    def notify_server_if_all_deployed(self):
+        if self.my_ship_count == 8:
+            # Send flag to server
+            pass
 
     def run(self):
+        # Server will normalize board coordinate. Let's assume enemy ship exists at that coordinate
+        enemy_ship = {(10, 0): 1, (11, 0): 1, (12, 0): 1}
+
         board = self.init_board()
         self.draw_board(board)
         terrain = self.draw_terrain()
@@ -353,166 +488,36 @@ class Game:
         ships = []
         while self.running:
             rects = self.show_menu()
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    self.running = 0
+
+                elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                    pos = pygame.mouse.get_pos()
+                    temp_ships = self.menu_switch(pos, rects, terrain, ships)
+                    if temp_ships is not None:
+                        ships = temp_ships
+
             if self.phase == "idle":
-                for event in pygame.event.get():
-                    if event.type == pygame.QUIT:
-                        self.running = 0
+                self.notify_server_if_all_deployed()
 
-                    elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
-                        pos = pygame.mouse.get_pos()
-                        if rects["button_horizontal"].collidepoint(pos):
-                            self.menu_action("button_horizontal")
+            elif self.phase == "waiting_server_response":
+                # Receive data
+                # If there's a part of enemy ship
+                #   self.phase = "game_started"
+                #   update your terrain / instantiate "cross" object. dont forget to render it down there
+                #   if terrain already on that state, can't be clicked again
+                pass
 
-                        elif rects["button_vertical"].collidepoint(pos):
-                            self.menu_action("button_vertical")
-
-                        elif rects["status"].collidepoint(pos):
-                            self.menu_action("status")
-
-                        elif rects["about"].collidepoint(pos):
-                            self.menu_action("about")
-
-                        elif rects["help"].collidepoint(pos):
-                            self.menu_action("help")
-
-                        elif rects["decor"].collidepoint(pos):
-                            self.menu_action("decor")
-
-                        elif rects["ready"].collidepoint(pos):
-                            self.menu_action("ready")
-
-
-                        else:
-                            pass
-
-                    elif event.type == pygame.MOUSEBUTTONUP and event.button == 3:
-                        # Flip ship
-                        continue
-
-                    elif event.type == pygame.MOUSEMOTION:
-                        continue
-
+            # Render
             elif self.phase == "deploy_horizontal":
                 clicked = pygame.image.load("./assets/image/button_horizontal_p.png")
                 self.window.blit(clicked, (0, 360))
-
-                for event in pygame.event.get():
-                    if event.type == pygame.QUIT:
-                        self.running = 0
-
-                    elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
-                        pos = pygame.mouse.get_pos()
-
-                        if rects["button_horizontal"].collidepoint(pos):
-                            self.menu_action("button_horizontal")
-
-                        elif rects["button_vertical"].collidepoint(pos):
-                            self.menu_action("button_vertical")
-
-                        elif rects["status"].collidepoint(pos):
-                            self.menu_action("status")
-
-                        elif rects["about"].collidepoint(pos):
-                            self.menu_action("about")
-
-                        elif rects["help"].collidepoint(pos):
-                            self.menu_action("help")
-
-                        elif rects["decor"].collidepoint(pos):
-                            self.menu_action("decor")
-
-                        elif rects["ready"].collidepoint(pos):
-                            self.menu_action("ready")
-
-                        else:
-                            terrain_rect = self.click_board(terrain)
-                            flag = self.condition_check(terrain_rect)
-
-                            if flag == 1:
-                                ships = self.deploy_my_ship(terrain_rect, ships)
-                                self.phase = "idle"
-
-                            else:
-                                self.phase = "deploy_horizontal"
-                            # mouseX, mouseY = pygame.mouse.get_pos()
-                            # col, row = self.board_position(mouseX, mouseY)
-                            # temp = None
-                            # for i in terrain:
-                            #     if i.col == col and i.row == row:
-                            #         temp = i
-                            # # If on player's view
-                            # terrain_rect = self.click_board(terrain)
-                            # self.deploy_my_ship(terrain_rect, temp.col, temp.row)
-                            # # If on enemy's view
-
-                            # Render terrain sprites
 
             elif self.phase == "deploy_vertical":
                 clicked = pygame.image.load("./assets/image/button_vertical_p.png")
                 self.window.blit(clicked, (160, 360))
 
-                for event in pygame.event.get():
-                    if event.type == pygame.QUIT:
-                        self.running = 0
-
-                    elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
-                        pos = pygame.mouse.get_pos()
-
-                        if rects["button_horizontal"].collidepoint(pos):
-                            self.menu_action("button_horizontal")
-
-                        elif rects["button_vertical"].collidepoint(pos):
-                            self.menu_action("button_vertical")
-
-                        elif rects["status"].collidepoint(pos):
-                            self.menu_action("status")
-
-                        elif rects["about"].collidepoint(pos):
-                            self.menu_action("about")
-
-                        elif rects["help"].collidepoint(pos):
-                            self.menu_action("help")
-
-                        elif rects["decor"].collidepoint(pos):
-                            self.menu_action("decor")
-
-                        elif rects["ready"].collidepoint(pos):
-                            self.menu_action("ready")
-
-                        else:
-                            terrain_rect = self.click_board(terrain)
-                            flag = self.condition_check(terrain_rect)
-
-                            if flag == 1:
-                                ships = self.deploy_my_ship(terrain_rect, ships)
-                                self.phase = "idle"
-
-                            else:
-                                self.phase = "deploy_vertical"
-
-                            # mouseX, mouseY = pygame.mouse.get_pos()
-                            # col, row = self.board_position(mouseX, mouseY)
-                            # temp = None
-                            # for i in terrain:
-                            #     if i.col == col and i.row == row:
-                            #         temp = i
-                            # # If on player's view
-                            # terrain_rect = self.click_board(terrain)
-                            # self.deploy_my_ship(terrain_rect, temp.col, temp.row)
-                            # # If on enemy's view
-
-                            # Render terrain sprites
-
-            elif self.phase == "start":
-                pass
-
-            elif self.phase == "player":
-                pass
-
-            elif self.phase == "enemy":
-                pass
-
-            # Render sprites
             for water in terrain:
                 water.update()
 
@@ -529,7 +534,7 @@ class Game:
             pygame.display.set_caption(caption)
             pygame.display.flip()
 
-        self.safe_end()
+        pygame.quit()
 
 if __name__ == "__main__":
     g = Game()
