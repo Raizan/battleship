@@ -237,14 +237,14 @@ class Game:
 
         if self.my_ship_count == 8:
             flag = "err"
-            title = "ERROR! SHIP_DEPLOY_LIMIT"
+            title = "ERROR! SHIP_DEPLOY_LIMIT\t"
             message = "Ship deploy limit reached.\t"
             dialog_box(flag, title, message)
             return 0
 
         elif col > 9:
             flag = "err"
-            title = "ERROR! SHIP_OUT_OF_RANGE"
+            title = "ERROR! SHIP_OUT_OF_RANGE\t"
             message = "You are trying to deploy outside your own area.\nPlease choose one grid on the left side of yellow line."
             dialog_box(flag, title, message)
             return 0
@@ -252,8 +252,8 @@ class Game:
         elif self.phase == "deploy_horizontal":
             if col > 7:
                 flag = "err"
-                title = "ERROR! SHIP_NOT_FULLY_DEPLOYED"
-                message = "Your ship is not fully on your area.\nPlease select other grid!\t\t"
+                title = "ERROR! SHIP_NOT_FULLY_DEPLOYED\t"
+                message = "Your ship is not fully on your area.\t\nPlease select other grid!\t\t"
                 dialog_box(flag, title, message)
 
                 return 0
@@ -266,7 +266,7 @@ class Game:
                 for i in check:
                     if i == 1:
                         flag = "err"
-                        title = "ERROR! SHIP_UNIT_OVERLAP"
+                        title = "ERROR! SHIP_UNIT_OVERLAP\t"
                         message = "Your new ship will overlap with other unit.\nPlease select other grid!"
                         dialog_box(flag, title, message)
                         return 0
@@ -274,8 +274,8 @@ class Game:
         elif self.phase == "deploy_vertical":
             if row > 7:
                 flag = "err"
-                title = "ERROR! SHIP_NOT_FULLY_DEPLOYED"
-                message = "Your ship is not fully on your area.\nPlease select other grid!"
+                title = "ERROR! SHIP_NOT_FULLY_DEPLOYED\t"
+                message = "Your ship is not fully on your area.\t\nPlease select other grid!"
                 dialog_box(flag, title, message)
                 return 0
 
@@ -287,7 +287,7 @@ class Game:
                 for i in check:
                     if i == 1:
                         flag = "err"
-                        title = "ERROR! SHIP_UNIT_OVERLAP"
+                        title = "ERROR! SHIP_UNIT_OVERLAP\t"
                         message = "Your new ship will overlap with other unit.\nPlease select other grid!"
                         dialog_box(flag, title, message)
                         return 0
@@ -393,6 +393,9 @@ class Game:
                         continue
 
             elif self.phase == "deploy_horizontal":
+                clicked = pygame.image.load("./assets/image/button_horizontal_p.png")
+                self.window.blit(clicked, (0, 360))
+
                 for event in pygame.event.get():
                     if event.type == pygame.QUIT:
                         self.running = 0
@@ -445,6 +448,9 @@ class Game:
                             # Render terrain sprites
 
             elif self.phase == "deploy_vertical":
+                clicked = pygame.image.load("./assets/image/button_vertical_p.png")
+                self.window.blit(clicked, (160, 360))
+
                 for event in pygame.event.get():
                     if event.type == pygame.QUIT:
                         self.running = 0
