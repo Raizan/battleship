@@ -1,12 +1,13 @@
 __author__ = "Reisuke"
 
-# pygame imported via GameObjects
 from scripts.DialogBox import *
 from scripts.GameObjects import *
+from Client import *
 
 
 class Game:
     def __init__(self):
+        # Game
         self.WINDOW_WIDTH = 640
         self.WINDOW_HEIGHT = 400
         self.FPS = 30
@@ -18,8 +19,8 @@ class Game:
         self.clock = pygame.time.Clock()
         self.running = 1
         self.phase = "idle"
-        self.state_enemy_board = {(i, j): 0 for i in range(10) for j in range(10)}
-        self.state_player_board = {(i, j): 0 for i in range(10) for j in range(10)}
+        self.state_enemy_board = [[0 for x in range(10)] for y in range(10)]
+        self.state_player_board = [[0 for x in range(10)] for y in range(10)]
         self.my_ship_count = 0
         self.enemy_ship_count = 0
 
@@ -467,27 +468,35 @@ class Game:
 
         if flag == 1:
             col, row = self.board_position(x, y)
+            print col, row
             self.phase = "waiting_server_response"
             # Change col row coordinate to player grid coordinate on server
             # Send col row with flag "action : attack"
 
-    def notify_server_if_all_deployed(self):
-        if self.my_ship_count == 8:
-            # Send flag to server
-            pass
-
     def run(self):
-        # Server will normalize board coordinate. Let's assume enemy ship exists at that coordinate
-        enemy_ship = {(10, 0): 1, (11, 0): 1, (12, 0): 1}
-
+        # The game
         board = self.init_board()
         self.draw_board(board)
         terrain = self.draw_terrain()
         lines = self.draw_line_grid()
         terrain_rect = None
         ships = []
+
+        # Initialize client networking
+        client_network = Client()
+
         while self.running:
+            # Networking loop
+            client_network.Loop()
+            data = client_network.PassData()    # get data here
+
+            # Game processing
+            print self.phase
+            if data["action"] == "matchmaking":
+                self.phase = "matchmaking"
+
             rects = self.show_menu()
+
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     self.running = 0
@@ -498,8 +507,14 @@ class Game:
                     if temp_ships is not None:
                         ships = temp_ships
 
-            if self.phase == "idle":
-                self.notify_server_if_all_deployed()
+            if self.phase == "matchmaking":
+                if data["action"] == "broadcast":
+                    if data["status"] == "deploy_phase":
+                        self.phase = "idle"
+                        print self.phase
+
+            elif self.phase == "idle":
+                pass
 
             elif self.phase == "waiting_server_response":
                 # Receive data
