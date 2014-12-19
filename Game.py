@@ -488,17 +488,36 @@ class Game:
         while self.running:
             # Networking loop
             client_network.Loop()
+
+            # Maintaining game status here
+            to_server = {"action": "broadcast_request"}
+            client_network.Send(to_server)        # Send request here
             data = client_network.PassData()    # get data here
 
-            # Game processing
+            # Checking game status
             print self.phase
             if data["action"] == "matchmaking":
                 self.phase = "matchmaking"
+
+            elif data["action"] == "broadcast":
+                if data["status"] == "opponent_disconnected":
+                    flag = "err"
+                    title = "ERROR! OPPONENT_DISCONNECTED"
+                    message = "Your opponent has been disconnected.\t\nGame cannot be continued.\nGame will be closed."
+                    dialog_box(flag, title, message)
+                    # Inform server that I will quit too
+                    to_server = {"action": "quit"}
+                    client_network.Send(to_server)
+                    break
+
+            # Game processing
 
             rects = self.show_menu()
 
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
+                    to_server = {"action": "quit"}
+                    client_network.Send(to_server)
                     self.running = 0
 
                 elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
