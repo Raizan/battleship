@@ -491,11 +491,20 @@ class Game:
 
             # Maintaining game status here
             to_server = {"action": "broadcast_request"}
-            client_network.Send(to_server)        # Send request here
+            print client_network.Send(to_server)        # Send request here
             data = client_network.PassData()    # get data here
-            print "Data: ", data
+            # print "Data: ", data
             # Checking game status
-            print self.phase
+            # print self.phase
+
+            # If action == disconnected
+            if not data:
+                flag = "err"
+                title = "ERROR! SERVER_OFFLINE"
+                message = "Server is offline.\nContact server administrator for further information.\nGame will close."
+                dialog_box(flag, title, message)
+                break
+
             if data["action"] == "matchmaking":
                 self.phase = "matchmaking"
 
