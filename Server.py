@@ -70,31 +70,30 @@ class GameServer(Server):
         print "Deleting", channel
         still_checking = 1
 
-        for pair in self.client_pairs:
-            for index in range(len(pair)):
-                if pair[index] == channel:
+        for i in range(len(self.client_pairs)):
+            for j in range(len(self.client_pairs[i])):
+                if self.client_pairs[i][j] == channel:
                     # Replace board status
-                    pair[2] = "opponent_disconnected"
-
+                    self.client_pairs[i][2] = "opponent_disconnected"
                     # If room is on full state, make sure there's another client there
                     # Broadcast to other player
-                    if pair[0] == 1 and len(pair) == 5:
+                    if self.client_pairs[i][0] == 1 and len(self.client_pairs[i]) == 5:
                         # If index = 2, then index = 3 is the other client
-                        if index == 2:
-                            self.BroadcastGameStatus(pair[3])
+                        if j == 3:
+                            self.BroadcastGameStatus(self.client_pairs[i][4])
                         # If index = 3, then index = 2 is the other client
-                        elif index == 3:
-                            self.BroadcastGameStatus(pair[2])
+                        elif j == 4:
+                            self.BroadcastGameStatus(self.client_pairs[i][3])
                         # Delete client from room
-                        del pair[index]
-                    # If room is on full state and one client is already out
-                    elif pair[0] == 1 and len(pair) == 4:
+                        del self.client_pairs[i][j]
+                        # If room is on full state and one client is already out
+                    elif self.client_pairs[i][0] == 1 and len(self.client_pairs[i]) == 4:
                         # Delete this room
-                        del pair
+                        del self.client_pairs[i]
                     # If room is not full and this client wants to exit
-                    elif pair[0] == 0:
+                    elif self.client_pairs[i][0] == 0:
                         # Delete this room
-                        del pair
+                        del self.client_pairs[i]
 
                     still_checking = 0
                     break
@@ -104,7 +103,7 @@ class GameServer(Server):
         # Delete this client from client channel dictionary
         del self.clients[channel]
 
-    # Anonymous game session maker
+    # Anonymous game session creator
     def Matchmaking(self, channel):
         board = [[0 for x in range(20)] for y in range(10)]
         status = "find_match"
@@ -134,8 +133,13 @@ class GameServer(Server):
             if got_no_room == 1:
                 self.client_pairs.append([room_full_flag, board, status, channel])
 
+        # print self.client_pairs
+
+    # Send message to itself, other client, or both clients based on flag
     def SendToOther(self, channel, data, flag=1):
         # print "SendToOther", data
+        sender = None
+        receiver = None
         for pair in self.client_pairs:
             # If there are two users in room
             if pair[0] == 1 and len(pair) == 5:
@@ -152,7 +156,6 @@ class GameServer(Server):
                 receiver = pair[3]
                 flag = 1
 
-
         # Send to other player in room
         if flag == 1:
             receiver.Send(data)
@@ -164,30 +167,36 @@ class GameServer(Server):
         elif flag == 3:
             channel.Send(data)
 
+    # Broadcast game status
     def BroadcastGameStatus(self, channel):
         for pair in self.client_pairs:
-            temp_data = {"action": "broadcast", "status": pair[2]}
-            # If only one player exists, broadcast to itself alone
-            if pair[0] == 0:
-                # Room: One player, probably still matchmaking
-                self.SendToOther(channel, temp_data, flag=3)
-            # If other player exists, broadcast to both players in room
-            elif pair[0] == 1:
-                # Room: Two players, probably in a game session
-                # So let's be positive and use flag = 2
-                self.SendToOther(channel, temp_data, flag=2)
+            for index in range(len(pair)):
+                if pair[index] == channel:
+                    temp_data = {"action": "broadcast", "status": pair[2]}
+                    # If only one player exists, broadcast to itself alone
+                    if pair[0] == 0:
+                        # Room: One player, probably still matchmaking
+                        self.SendToOther(channel, temp_data, flag=3)
+                    # If other player exists, broadcast to both players in room
+                    elif pair[0] == 1:
+                        # Room: Two players, probably in a game session
+                        # Let's test it by using flag = 2
+                        self.SendToOther(channel, temp_data, flag=2)
 
     def print_client_pairs(self):
         for i in range(len(self.client_pairs)):
             print "--------------"
             print i
-            print self.client_pairs[i]
+            for j in range(len(self.client_pairs[i])):
+                if j != 1:
+                    print self.client_pairs[i][j]
             print "--------------"
 
+    # Main loop
     def Loop(self):
         while True:
             self.Pump()
-            self.print_client_pairs()
+            # self.print_client_pairs()
             sleep(0.0001)
 
 if __name__ == "__main__":

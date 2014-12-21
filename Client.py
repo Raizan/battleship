@@ -20,14 +20,16 @@ class Client(ConnectionListener):
         self.temp_data = None
         # self.running = 1
 
+    # Main loop. Use this on Game main loop
     def Loop(self):
         connection.Pump()
         self.Pump()
 
+    # To get self.temp_data. Use this on Game class
     def PassData(self):
         return self.temp_data
 
-    # Network get data only on Network
+    # Data getter
     def Network(self, data):
         self.temp_data = data
 

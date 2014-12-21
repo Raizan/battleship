@@ -491,11 +491,11 @@ class Game:
 
             # Maintaining game status here
             to_server = {"action": "broadcast_request"}
-            print client_network.Send(to_server)        # Send request here
+            client_network.Send(to_server)        # Send request here
             data = client_network.PassData()    # get data here
-            # print "Data: ", data
+            print "Data: ", data
             # Checking game status
-            # print self.phase
+            print self.phase
 
             # If action == disconnected
             if not data:
