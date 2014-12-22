@@ -122,7 +122,7 @@ class Game:
             ready_image = pygame.image.load("./assets/image/please_wait.png")
             rects["please_wait"] = self.window.blit(ready_image, (320, 320))
 
-        elif self.phase == "deploy_phase":
+        elif self.phase == "deploy_phase" or self.phase == "deploy_horizontal" or self.phase == "deploy_vertical":
             info_decor_image = pygame.image.load("./assets/image/info_decor.png")
             rects["decor"] = self.window.blit(info_decor_image, (0, 320))
 
@@ -282,7 +282,7 @@ class Game:
             else:
                 check = [0 for i in range(3)]
                 for i in range(3):
-                    if self.state_player_board[(col + i, row)] == 1:
+                    if self.state_player_board[col + i][row] == 1:
                         check[i] = 1
                 for i in check:
                     if i == 1:
@@ -310,7 +310,7 @@ class Game:
             else:
                 check = [0 for i in range(3)]
                 for i in range(3):
-                    if self.state_player_board[(col, row + i)] == 1:
+                    if self.state_player_board[col][row + i] == 1:
                         check[i] = 1
                 for i in check:
                     if i == 1:
@@ -462,44 +462,39 @@ class Game:
                 if flag == 1:
                     ships = self.deploy_my_ship(terrain_rect, ships)
                     self.phase = "deploy_phase"
+                    print self.counter_my_ship
+                    print self.state_player_board
                     return ships
 
                 else:
                     self.phase = "deploy_vertical"
 
         elif self.phase == "ready":
-            if self.counter_my_ship < 8:
-                flag = "err"
-                title = "ERROR! NOT_ALL_DEPLOYED"
-                message = "You can't READY because not all ship deployed.\t\nPlease deploy your ship until all deployed."
-                dialog_box(flag, title, message)
-                self.phase = "deploy_phase"
-            else:
-                if self.ready_sent == 0:
-                    temp_data = {"action": "ready", "my_board": self.state_player_board}
-                    client_network.Send(temp_data)
-                    self.ready_sent = 1
+            if self.ready_sent == 0:
+                temp_data = {"action": "ready", "my_board": self.state_player_board}
+                client_network.Send(temp_data)
+                self.ready_sent = 1
 
-                if rects["status"].collidepoint(pos):
-                    self.menu_action("status")
+            if rects["status"].collidepoint(pos):
+                self.menu_action("status")
 
-                elif rects["about"].collidepoint(pos):
-                    self.menu_action("about")
+            elif rects["about"].collidepoint(pos):
+                self.menu_action("about")
 
-                elif rects["help"].collidepoint(pos):
-                    self.menu_action("help")
+            elif rects["help"].collidepoint(pos):
+                self.menu_action("help")
 
-                elif rects["decor"].collidepoint(pos):
-                    self.menu_action("decor")
+            elif rects["decor"].collidepoint(pos):
+                self.menu_action("decor")
 
-                elif rects["please_wait"].collidepoint(pos):
-                    pass
+            elif rects["please_wait"].collidepoint(pos):
+                pass
 
-                elif rects["announcement"].collidepoint(pos):
-                    pass
-                # Wait for server send START_GAME flag
-                # Change menu layout (Buttons, etc)
-                # Change Start Button to WAITING FOR OPPONENT with grey color
+            elif rects["announcement"].collidepoint(pos):
+                pass
+            # Wait for server send START_GAME flag
+            # Change menu layout (Buttons, etc)
+            # Change Start Button to WAITING FOR OPPONENT with grey color
 
     def attack_ship(self, terrain_rect):
         x = terrain_rect[0]
@@ -533,11 +528,10 @@ class Game:
             to_server = {"action": "broadcast_request"}
             client_network.Send(to_server)        # Send request here
             data = client_network.PassData()    # get data here
-            print "Data: ", data
-            print self.phase
+            # print "Data: ", data
+            # print self.phase
             # Checking game status
 
-            # If action == disconnected
             if data["action"] == "disconnected":
                 flag = "err"
                 title = "ERROR! SERVER_OFFLINE"
@@ -565,6 +559,22 @@ class Game:
                     deploy_phase_announcement = 1
 
             # Game processing
+            if self.phase == "ready":
+                if self.counter_my_ship < 8:
+                    flag = "err"
+                    title = "ERROR! NOT_ALL_DEPLOYED"
+                    message = "You can't READY because not all ship deployed.\t\nPlease deploy your ship until all deployed."
+                    dialog_box(flag, title, message)
+                    self.phase = "deploy_phase"
+
+            if self.phase == "matchmaking":
+                pygame.display.set_caption("Matchmaking. Please wait...")
+
+            else:
+                # FPS 30
+                get_fps = self.clock.tick(self.FPS)
+                caption = "Battleship Game | FPS " + str(get_fps)
+                pygame.display.set_caption(caption)
 
             rects = self.show_menu()
 
@@ -580,11 +590,8 @@ class Game:
                     if temp_ships is not None:
                         ships = temp_ships
 
-            if self.phase == "deploy_phase":
-                pass
-
             # Render
-            elif self.phase == "deploy_horizontal":
+            if self.phase == "deploy_horizontal":
                 clicked = pygame.image.load("./assets/image/button_horizontal_p.png")
                 self.window.blit(clicked, (0, 360))
 
@@ -602,10 +609,6 @@ class Game:
                 for ship in ships:
                     ship.render()
 
-            # FPS 30
-            get_fps = self.clock.tick(self.FPS)
-            caption = "Battleship Game | FPS " + str(get_fps)
-            pygame.display.set_caption(caption)
             pygame.display.flip()
 
         pygame.quit()

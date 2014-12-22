@@ -28,6 +28,7 @@ class ServerChannel(Channel):
             self._server.SendToOther(self, data)
 
         elif data["action"] == "ready":
+            print data
             self._server.InitBoard(self, data)
 
     # Get data here
