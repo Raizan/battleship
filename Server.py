@@ -25,7 +25,7 @@ class ServerChannel(Channel):
             self.Close()
 
         elif data["action"] == "attack":
-            self._server.SendToOther(self, data)
+            self._server.UpdateBoard(self, data)
 
         elif data["action"] == "ready":
             print data
@@ -80,10 +80,12 @@ class GameServer(Server):
                         # If room is on full state and one client is already out
                     elif self.client_pairs[i][0][0] == 1 and len(self.client_pairs[i]) == 4:
                         # Delete this room
+                        print "Deleting room"
                         del self.client_pairs[i]
                     # If room is not full and this client wants to exit
                     elif self.client_pairs[i][0][0] == 0:
                         # Delete this room
+                        print "Deleting room"
                         del self.client_pairs[i]
 
                     still_checking = 0
@@ -195,19 +197,62 @@ class GameServer(Server):
                     if self.client_pairs[i][0][1] == 2:
                         temp_data = {"action": "ready_response", "ready_counter": self.client_pairs[i][0][1]}
                         self.SendToOther(channel, temp_data, flag=2)
+                        # Change game status to player_1 means first one who submit the board will take the first turn
+                        self.client_pairs[i][2] = "player_1"
+                        # Notify player if he is player_1
+                        first_player = {"action": "assign_turn", "order": "player_1"}
+                        self.SendToOther(channel, first_player, flag=1)
+                        # Notify player if he is player_2
+                        second_player = {"action": "assign_turn", "order": "player_2"}
+                        self.SendToOther(channel, second_player, flag=3)
+
                     still_checking = 0
                     break
 
             if still_checking == 0:
                 break
 
+    def UpdateBoard(self, channel, data):
+        still_checking = 1
+        board_number = None
+        for i in range(len(self.client_pairs)):
+            for j in range(len(self.client_pairs[i])):
+                if self.client_pairs[i][j] == channel:
+                    if j == 3:
+                        board_number = 0
+                    elif j == 4:
+                        board_number = 1
+                    # Extract row and col data
+                    row = data["row"]
+                    col = data["col"]
+                    # Update board state to attack result
+                    # If part of ship is there, give it explosion
+                    if self.client_pairs[i][1][board_number][row][col] == 1:
+
+                        self.client_pairs[i][1][board_number][row][col] = 0
+                    # Update game status
+                    if self.client_pairs[i][2] == "player_1":
+                        self.client_pairs[i][2] = "player_2"
+                    elif self.client_pairs[i][2] == "player_2":
+                        self.client_pairs[i][2] = "player_1"
+
+                    still_checking = 0
+                    break
+
+            if still_checking == 0:
+                break
+    #
+    # def WinningCheck(self):
+    #     for pair in self.client_pairs:
+    #         for index in len(pair):
+    #             if pair[index]
+
     def print_client_pairs(self):
         for i in range(len(self.client_pairs)):
             print "--------------"
             print i
             for j in range(len(self.client_pairs[i])):
-                if j != 1:
-                    print self.client_pairs[i][j]
+                print self.client_pairs[i][j]
             print "--------------"
 
     # Main loop
