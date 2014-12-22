@@ -18,11 +18,13 @@ class Game:
         pygame.display.set_caption("Initializing...")
         self.clock = pygame.time.Clock()
         self.running = 1
+
         self.phase = "idle"
         self.state_enemy_board = [[0 for x in range(10)] for y in range(10)]
         self.state_player_board = [[0 for x in range(10)] for y in range(10)]
-        self.my_ship_count = 0
-        self.enemy_ship_count = 0
+        self.counter_my_ship = 0
+        self.counter_enemy_ship = 0
+        self.ready_sent = 0
 
     def init_board(self):
         board = pygame.Surface(self.window.get_size())
@@ -100,26 +102,47 @@ class Game:
 
     def show_menu(self):
         rects = {}
-        info_decor_image = pygame.image.load("./assets/image/info_decor.png")
-        rects["decor"] = self.window.blit(info_decor_image, (0, 320))
 
-        info_help_image = pygame.image.load("./assets/image/info_help.png")
-        rects["help"] = self.window.blit(info_help_image, (148, 320))
+        if self.phase == "ready":
+            info_decor_image = pygame.image.load("./assets/image/info_decor.png")
+            rects["decor"] = self.window.blit(info_decor_image, (0, 320))
 
-        info_about_image = pygame.image.load("./assets/image/info_about.png")
-        rects["about"] = self.window.blit(info_about_image, (148, 339))
+            info_help_image = pygame.image.load("./assets/image/info_help.png")
+            rects["help"] = self.window.blit(info_help_image, (148, 320))
 
-        info_status_image = pygame.image.load("./assets/image/info_status.png")
-        rects["status"] = self.window.blit(info_status_image, (207, 320))
+            info_about_image = pygame.image.load("./assets/image/info_about.png")
+            rects["about"] = self.window.blit(info_about_image, (148, 339))
 
-        button_horizontal_image = pygame.image.load("./assets/image/button_horizontal.png")
-        rects["button_horizontal"] = self.window.blit(button_horizontal_image, (0, 360))
+            info_status_image = pygame.image.load("./assets/image/info_status.png")
+            rects["status"] = self.window.blit(info_status_image, (207, 320))
 
-        button_vertical_image = pygame.image.load("./assets/image/button_vertical.png")
-        rects["button_vertical"] = self.window.blit(button_vertical_image, (160, 360))
+            button_horizontal_image = pygame.image.load("./assets/image/your_enemy_is_still_deploying.png")
+            rects["announcement"] = self.window.blit(button_horizontal_image, (0, 360))
 
-        ready_image = pygame.image.load("./assets/image/ready.png")
-        rects["ready"] = self.window.blit(ready_image, (320, 320))
+            ready_image = pygame.image.load("./assets/image/please_wait.png")
+            rects["please_wait"] = self.window.blit(ready_image, (320, 320))
+
+        elif self.phase == "deploy_phase":
+            info_decor_image = pygame.image.load("./assets/image/info_decor.png")
+            rects["decor"] = self.window.blit(info_decor_image, (0, 320))
+
+            info_help_image = pygame.image.load("./assets/image/info_help.png")
+            rects["help"] = self.window.blit(info_help_image, (148, 320))
+
+            info_about_image = pygame.image.load("./assets/image/info_about.png")
+            rects["about"] = self.window.blit(info_about_image, (148, 339))
+
+            info_status_image = pygame.image.load("./assets/image/info_status.png")
+            rects["status"] = self.window.blit(info_status_image, (207, 320))
+
+            button_horizontal_image = pygame.image.load("./assets/image/button_horizontal.png")
+            rects["button_horizontal"] = self.window.blit(button_horizontal_image, (0, 360))
+
+            button_vertical_image = pygame.image.load("./assets/image/button_vertical.png")
+            rects["button_vertical"] = self.window.blit(button_vertical_image, (160, 360))
+
+            ready_image = pygame.image.load("./assets/image/ready.png")
+            rects["ready"] = self.window.blit(ready_image, (320, 320))
 
         return rects
 
@@ -233,7 +256,7 @@ class Game:
         y = terrain_rect[1]
         col, row = self.board_position(x, y)
 
-        if self.my_ship_count == 8:
+        if self.counter_my_ship == 8:
             flag = "err"
             title = "ERROR! SHIP_DEPLOY_LIMIT\t"
             message = "Ship deploy limit reached.\t"
@@ -315,14 +338,14 @@ class Game:
         if self.phase == "deploy_horizontal":
             ships.append(Battleship(self.window, col, row, x, y, "horizontal"))
             for i in range(3):
-                self.state_player_board[(col + i, row)] = 1
+                self.state_player_board[row][col + i] = 1
 
         elif self.phase == "deploy_vertical":
             ships.append(Battleship(self.window, col, row, x, y, "vertical"))
             for i in range(3):
-                self.state_player_board[(col, row + i)] = 1
+                self.state_player_board[row + i][col] = 1
 
-        self.my_ship_count += 1
+        self.counter_my_ship += 1
         return ships
         # Update player board state
 
@@ -334,7 +357,7 @@ class Game:
             self.phase = "deploy_vertical"
 
         elif action == "ready":
-            self.phase = "game_started"  # Change it after you properly do it
+            self.phase = "ready"
 
         elif action == "help":
             # Create dialog box for help
@@ -353,11 +376,8 @@ class Game:
             message = part1 + part2 + part3 + part4 + part5 + part6 + part7
             dialog_box(flag, title, message)
 
-        elif action == "game":
-            pass
-
-    def menu_switch(self, pos, rects, terrain, ships):
-        if self.phase == "idle":
+    def menu_switch(self, pos, rects, terrain, ships, client_network):
+        if self.phase == "deploy_phase":
             if rects["button_horizontal"].collidepoint(pos):
                 self.menu_action("button_horizontal")
 
@@ -407,7 +427,7 @@ class Game:
 
                 if flag == 1:
                     ships = self.deploy_my_ship(terrain_rect, ships)
-                    self.phase = "idle"
+                    self.phase = "deploy_phase"
                     return ships
 
                 else:
@@ -441,25 +461,45 @@ class Game:
 
                 if flag == 1:
                     ships = self.deploy_my_ship(terrain_rect, ships)
-                    self.phase = "idle"
+                    self.phase = "deploy_phase"
                     return ships
 
                 else:
                     self.phase = "deploy_vertical"
 
         elif self.phase == "ready":
-            pass
-            # Wait for server send START_GAME flag
-            # Change menu layout (Buttons, etc)
-            # Change Start Button to WAITING FOR OPPONENT with grey color
+            if self.counter_my_ship < 8:
+                flag = "err"
+                title = "ERROR! NOT_ALL_DEPLOYED"
+                message = "You can't READY because not all ship deployed.\t\nPlease deploy your ship until all deployed."
+                dialog_box(flag, title, message)
+                self.phase = "deploy_phase"
+            else:
+                if self.ready_sent == 0:
+                    temp_data = {"action": "ready", "my_board": self.state_player_board}
+                    client_network.Send(temp_data)
+                    self.ready_sent = 1
 
-        elif self.phase == "game_started":
-            terrain_rect = self.click_board(terrain)
-            self.attack_ship(terrain_rect)
+                if rects["status"].collidepoint(pos):
+                    self.menu_action("status")
 
-        elif self.phase == "waiting_server_response":
-            # Draw rest of menu buttons
-            pass
+                elif rects["about"].collidepoint(pos):
+                    self.menu_action("about")
+
+                elif rects["help"].collidepoint(pos):
+                    self.menu_action("help")
+
+                elif rects["decor"].collidepoint(pos):
+                    self.menu_action("decor")
+
+                elif rects["please_wait"].collidepoint(pos):
+                    pass
+
+                elif rects["announcement"].collidepoint(pos):
+                    pass
+                # Wait for server send START_GAME flag
+                # Change menu layout (Buttons, etc)
+                # Change Start Button to WAITING FOR OPPONENT with grey color
 
     def attack_ship(self, terrain_rect):
         x = terrain_rect[0]
@@ -481,7 +521,7 @@ class Game:
         lines = self.draw_line_grid()
         terrain_rect = None
         ships = []
-
+        deploy_phase_announcement = 0
         # Initialize client networking
         client_network = Client()
 
@@ -494,32 +534,35 @@ class Game:
             client_network.Send(to_server)        # Send request here
             data = client_network.PassData()    # get data here
             print "Data: ", data
-            # Checking game status
             print self.phase
+            # Checking game status
 
             # If action == disconnected
-            if not data:
+            if data["action"] == "disconnected":
                 flag = "err"
                 title = "ERROR! SERVER_OFFLINE"
                 message = "Server is offline.\nContact server administrator for further information.\nGame will close."
                 dialog_box(flag, title, message)
                 break
 
-            if data["action"] == "matchmaking":
+            elif data["action"] == "matchmaking":
                 self.phase = "matchmaking"
+
+            elif data["action"] == "ready_response":
+                if data["ready_counter"] == 2:
+                    self.phase = "war"
 
             elif data["action"] == "broadcast":
                 if data["status"] == "opponent_disconnected":
                     flag = "err"
                     title = "ERROR! OPPONENT_DISCONNECTED"
-                    message = "Your opponent has been disconnected.\t\nGame cannot be continued.\nGame will close."
+                    message = "Your opponent has been disconnected.\t\nGame will close."
                     dialog_box(flag, title, message)
                     break
-                    # Inform server that I will quit too
-                    # to_server = {"action": "quit"}
-                    # client_network.Send(to_server)
-                    # self.running = 0
-                    # pygame.quit()
+
+                elif data["status"] == "deploy_phase" and deploy_phase_announcement == 0:
+                    self.phase = "deploy_phase"
+                    deploy_phase_announcement = 1
 
             # Game processing
 
@@ -533,25 +576,11 @@ class Game:
 
                 elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                     pos = pygame.mouse.get_pos()
-                    temp_ships = self.menu_switch(pos, rects, terrain, ships)
+                    temp_ships = self.menu_switch(pos, rects, terrain, ships, client_network)
                     if temp_ships is not None:
                         ships = temp_ships
 
-            if self.phase == "matchmaking":
-                if data["action"] == "broadcast":
-                    if data["status"] == "deploy_phase":
-                        self.phase = "idle"
-                        print self.phase
-
-            elif self.phase == "idle":
-                pass
-
-            elif self.phase == "waiting_server_response":
-                # Receive data
-                # If there's a part of enemy ship
-                #   self.phase = "game_started"
-                #   update your terrain / instantiate "cross" object. dont forget to render it down there
-                #   if terrain already on that state, can't be clicked again
+            if self.phase == "deploy_phase":
                 pass
 
             # Render
