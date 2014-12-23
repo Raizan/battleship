@@ -48,6 +48,10 @@ class Water:
         self.row = row
         self.rect = None
         self.image_clicked = None
+
+        self.explosion_sound = pygame.mixer.Sound('./assets/sound/WaterSurfaceExplosion.wav')
+        self.play_flag = 0
+
         self.image_1 = pygame.image.load("./assets/image/water_1.png")
         self.image_2 = pygame.image.load("./assets/image/water_2.png")
         self.image_3 = pygame.image.load("./assets/image/water_3.png")
@@ -95,6 +99,10 @@ class Water:
                 self.rect = self.window.blit(self.attacked_image_3, (self.x, self.y))
 
         elif self.flag == "hit":
+            if self.play_flag == 0:
+                self.explosion_sound.play()
+                self.play_flag = 1
+
             if self.current_image == 1:
                 self.rect = self.window.blit(self.hit_image_1, (self.x, self.y))
 

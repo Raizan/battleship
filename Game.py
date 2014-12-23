@@ -20,6 +20,14 @@ class Game:
         self.clock = pygame.time.Clock()
         self.running = 1
 
+        # Music
+        pygame.mixer.music.load("./assets/sound/bgm.ogg")
+        self.win_sound = pygame.mixer.Sound('./assets/sound/Victory.wav')
+        self.lose_sound = pygame.mixer.Sound('./assets/sound/GameOver.mp3')
+        # self.explosion_sound = pygame.mixer.Sound('./assets/sound/WaterSurfaceExplosion.wav')
+        self.gunshot = pygame.mixer.Sound('./assets/sound/GunShot.wav')
+        pygame.mixer.music.play()
+
         # Initialize client networking
         self.client_network = Client()
 
@@ -342,9 +350,11 @@ class Game:
             part3 = "Informatics Department\nInstitut Teknologi Sepuluh Nopember\nSurabaya, Indonesia\n\n"
             part4 = "Written by:\n\tAndrew Joshua N.\t(5112100149)\n"
             part5 = "\tReyhan Arief\t(5112100175)\n\n\n"
-            part6 = "Icon, terrain and ship sprite downloaded from OpenGameArt.org\n"
-            part7 = "which are licensed under Creative Commons."
-            message = part1 + part2 + part3 + part4 + part5 + part6 + part7
+            part6 = "Icon and sprites downloaded from OpenGameArt.org which are\n"
+            part7 = "licensed under Creative Commons."
+            part8 = "SFX and BGM downloaded from OpenGameArt.org\n"
+            part9 = "and FreeSound.org which are licensed under Creative Commons."
+            message = part1 + part2 + part3 + part4 + part5 + part6 + part7 + part8 + part9
             dialog_box(flag, title, message)
 
     def show_menu(self):
@@ -640,6 +650,7 @@ class Game:
         flag = self.condition_check(terrain_rect)
 
         if flag == 1:
+            self.gunshot.play()
             col, row = self.board_position(x, y)
             attack_data = {"action": "attack", "col": col, "row": row}
             self.client_network.Send(attack_data)
@@ -677,6 +688,7 @@ class Game:
             self.state_enemy_board = board_state[1]
 
             if board_counter[0] == 0 and board_counter[0] is not None:
+                self.lose_sound.play()
                 flag = "info"
                 title = "INFO: LOSE"
                 message = "You lose.\t\nGame will exit."
@@ -684,6 +696,7 @@ class Game:
                 return "exit"
 
             elif board_counter[1] == 0 and board_counter[1] is not None:
+                self.win_sound.play()
                 flag = "info"
                 title = "INFO: WIN"
                 message = "You win.\t\nGame will exit."
@@ -695,6 +708,7 @@ class Game:
             self.state_enemy_board = board_state[0]
 
             if board_counter[0] == 0 and board_counter[0] is not None:
+                self.win_sound.play()
                 flag = "info"
                 title = "INFO: WIN"
                 message = "Congratulations! You win.\t\nGame will exit."
@@ -702,6 +716,7 @@ class Game:
                 return "exit"
 
             elif board_counter[1] == 0 and board_counter[1] is not None:
+                self.lose_sound.play()
                 flag = "info"
                 title = "INFO: LOSE"
                 message = "Sorry. You lose.\t\nGame will exit."
