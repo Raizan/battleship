@@ -260,9 +260,9 @@ class GameServer(Server):
             for j in range(len(self.client_pairs[i])):
                 if self.client_pairs[i][j] == channel:
                     if j == 3:
-                        board_number = 0
-                    elif j == 4:
                         board_number = 1
+                    elif j == 4:
+                        board_number = 0
                     # Extract row and col data
                     row = data["row"]
                     col = data["col"] - 10  # Normalize
@@ -271,6 +271,8 @@ class GameServer(Server):
                     print "board: ", board_number, "row: ", row, "col: ", col
                     if self.client_pairs[i][1][board_number][row][col] == 1:
                         self.client_pairs[i][1][board_number][row][col] = -1
+                    elif self.client_pairs[i][1][board_number][row][col] == 0:
+                        self.client_pairs[i][1][board_number][row][col] = -2
                     # Update game status
                     if self.client_pairs[i][2] == "player_1":
                         self.client_pairs[i][2] = "player_2"
@@ -278,6 +280,8 @@ class GameServer(Server):
                         self.client_pairs[i][2] = "player_1"
                     print self.client_pairs[i][2]
                     still_checking = 0
+
+                    print self.client_pairs[i][1][board_number]
                     break
 
             if still_checking == 0:
@@ -324,7 +328,7 @@ class GameServer(Server):
     def Loop(self):
         while True:
             self.Pump()
-            # self.print_client_pairs()
+            self.print_client_pairs()
             # sleep(0.0001)
 
 if __name__ == "__main__":

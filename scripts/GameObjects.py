@@ -56,6 +56,10 @@ class Water:
         self.attacked_image_2 = pygame.image.load("./assets/image/attacked_water_2.png")
         self.attacked_image_3 = pygame.image.load("./assets/image/attacked_water_3.png")
 
+        self.hit_image_1 = pygame.image.load("./assets/image/hit_water_1.png")
+        self.hit_image_2 = pygame.image.load("./assets/image/hit_water_2.png")
+        self.hit_image_3 = pygame.image.load("./assets/image/hit_water_3.png")
+
         self.current_image = 1
         self.time_now = 0
         self.time_target = 10
@@ -89,6 +93,17 @@ class Water:
 
             elif self.current_image == 3:
                 self.rect = self.window.blit(self.attacked_image_3, (self.x, self.y))
+
+        elif self.flag == "hit":
+            if self.current_image == 1:
+                self.rect = self.window.blit(self.hit_image_1, (self.x, self.y))
+
+            elif self.current_image == 2:
+                self.rect = self.window.blit(self.hit_image_2, (self.x, self.y))
+
+            elif self.current_image == 3:
+                self.rect = self.window.blit(self.hit_image_3, (self.x, self.y))
+
         else:
             if self.current_image == 1:
                 self.rect = self.window.blit(self.image_1, (self.x, self.y))

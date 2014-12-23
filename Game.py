@@ -647,6 +647,30 @@ class Game:
             # Change col row coordinate to player grid coordinate on server
             # Send col row with flag "action : attack"
 
+    def board_hit(self):
+        for i in range(10):
+            for j in range(10):
+                if self.state_player_board[i][j] == -1:
+                    for t in self.terrain:
+                        if t.col == j and t.row == i:
+                            t.flag = "hit"
+                elif self.state_player_board[i][j] == -2:
+                    for t in self.terrain:
+                        if t.col == j and t.row == i:
+                            t.flag = "clicked"
+
+        for i in range(10):
+            for j in range(10):
+                if self.state_enemy_board[i][j] == -1:
+                    for t in self.terrain:
+                        if t.col == j + 10 and t.row == i:
+                            t.flag = "hit"
+                elif self.state_enemy_board[i][j] == -2:
+                    for t in self.terrain:
+                        if t.col == j + 10 and t.row == i:
+                            t.flag = "clicked"
+
+
     def update_board(self, board_state, board_counter):
         if self.my_turn == "player_1":
             self.state_player_board = board_state[0]
@@ -707,9 +731,11 @@ class Game:
             data = self.client_network.PassData()    # get data here
 
             # self.client_network.Loop()
-            print "Data: ", data
-            print "Phase: ", self.phase
-            print "my_turn: ", self.my_turn
+            # print "Data: ", data
+            # print "Phase: ", self.phase
+            # print "my_turn: ", self.my_turn
+            print "My board: ", self.state_player_board
+            print "Enemy board: ", self.state_enemy_board
             # Checking game status
 
             if not data or data["action"] == "disconnected":
@@ -757,6 +783,7 @@ class Game:
 
                 if "board_state" in data:
                     win_or_lose = self.update_board(data["board_state"], data["board_counter"])
+                    self.board_hit()
                     if win_or_lose == "exit":
                         break
 
