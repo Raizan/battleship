@@ -271,13 +271,20 @@ class GameServer(Server):
                     print "board: ", board_number, "row: ", row, "col: ", col
                     if self.client_pairs[i][1][board_number][row][col] == 1:
                         self.client_pairs[i][1][board_number][row][col] = -1
+                        # Bonus move
+                        if j == 3:
+                            self.client_pairs[i][2] = "player_1"
+                        elif j == 4:
+                            self.client_pairs[i][2] = "player_2"
+
                     elif self.client_pairs[i][1][board_number][row][col] == 0:
                         self.client_pairs[i][1][board_number][row][col] = -2
-                    # Update game status
-                    if self.client_pairs[i][2] == "player_1":
-                        self.client_pairs[i][2] = "player_2"
-                    elif self.client_pairs[i][2] == "player_2":
-                        self.client_pairs[i][2] = "player_1"
+                        # Update game status
+                        if self.client_pairs[i][2] == "player_1":
+                            self.client_pairs[i][2] = "player_2"
+                        elif self.client_pairs[i][2] == "player_2":
+                            self.client_pairs[i][2] = "player_1"
+
                     print self.client_pairs[i][2]
                     still_checking = 0
 
