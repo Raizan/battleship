@@ -11,6 +11,7 @@ class ServerChannel(Channel):
 
     def __init__(self, *args, **kwargs):
         Channel.__init__(self, *args, **kwargs)
+        self.assign_player_counter = 0
 
     def Close(self):
         print "close"
@@ -43,7 +44,8 @@ class GameServer(Server):
     def __init__(self, *args, **kwargs):
         Server.__init__(self, *args, **kwargs)
         self.clients = WeakKeyDictionary()
-        # [[room_full_flag, ready_state], [board, board], status, player1, player2] room_full_flag=1 means room is full
+        # [[room_full_flag, ready_state, player_who_get_first_turn], [board, board], status, player1, player2]
+        # room_full_flag=1 means room is full
         self.client_pairs = []
         print 'Server launched'
 
@@ -104,7 +106,7 @@ class GameServer(Server):
         ready_state = 0
         # If no room exists
         if len(self.client_pairs) == 0:
-            self.client_pairs.append([[room_full_flag, ready_state], [board, board], status, channel])
+            self.client_pairs.append([[room_full_flag, ready_state, None], [board, board], status, channel])
 
         # if at least a room exists
         else:
@@ -125,7 +127,7 @@ class GameServer(Server):
 
             # If all rooms already full, make a new one
             if got_no_room == 1:
-                self.client_pairs.append([[room_full_flag, ready_state], [board, board], status, channel])
+                self.client_pairs.append([[room_full_flag, ready_state, None], [board, board], status, channel])
 
         # print self.client_pairs
 
@@ -152,27 +154,67 @@ class GameServer(Server):
 
         # Send to other player in room
         if flag == 1:
+            del data["player_1"]
+            del data["player_2"]
             receiver.Send(data)
         # Send to both player in room
         elif flag == 2:
-            receiver.Send(data)
-            sender.Send(data)
+            temp_player_1 = data["player_1"]
+            temp_player_2 = data["player_2"]
+            del data["player_1"]
+            del data["player_2"]
+
+            if temp_player_1 == receiver:
+                data["order"] = "player_1"
+                receiver.Send(data)
+
+            elif temp_player_1 == sender:
+                data["order"] = "player_1"
+                sender.Send(data)
+
+            if temp_player_2 == receiver:
+                data["order"] = "player_2"
+                receiver.Send(data)
+
+            elif temp_player_2 == sender:
+                data["order"] = "player_2"
+                sender.Send(data)
+
+            if temp_player_1 is None or temp_player_2 is None:
+                receiver.Send(data)
+                sender.Send(data)
+
         # Send to who made request
         elif flag == 3:
+            del data["player_1"]
+            del data["player_2"]
             channel.Send(data)
 
-    # Broadcast game status
+    # Broadcast game status and determine player order
     def BroadcastGameStatus(self, channel):
+        player_1 = None
+        player_2 = None
         for pair in self.client_pairs:
             for index in range(len(pair)):
                 if pair[index] == channel:
-                    temp_data = {"action": "broadcast", "status": pair[2]}
+                    temp_data = {"action": "broadcast", "status": pair[2], "order": None, "player_1": None, "player_2": None}
                     # If only one player exists, broadcast to itself alone
                     if pair[0][0] == 0:
                         # Room: One player, probably still matchmaking
                         self.SendToOther(channel, temp_data, flag=3)
                     # If other player exists, broadcast to both players in room
                     elif pair[0][0] == 1:
+                        # To set player order
+                        if len(pair) == 5:
+                            if pair[0][2] == channel:
+                                if index == 3:
+                                    player_1 = channel
+                                    player_2 = pair[4]
+                                elif index == 4:
+                                    player_1 = channel
+                                    player_2 = pair[3]
+                                temp_data = {"action": "broadcast", "status": pair[2], "order": None, "player_1": player_1, "player_2": player_2}
+
                         # Room: Two players, probably in a game session
                         # Let's test it by using flag = 2
                         self.SendToOther(channel, temp_data, flag=2)
@@ -195,16 +237,9 @@ class GameServer(Server):
 
                     # Send ready_state to players if both are ready
                     if self.client_pairs[i][0][1] == 2:
-                        temp_data = {"action": "ready_response", "ready_counter": self.client_pairs[i][0][1]}
-                        self.SendToOther(channel, temp_data, flag=2)
                         # Change game status to player_1 means first one who submit the board will take the first turn
                         self.client_pairs[i][2] = "player_1"
-                        # Notify player if he is player_1
-                        first_player = {"action": "assign_turn", "order": "player_1"}
-                        self.SendToOther(channel, first_player, flag=1)
-                        # Notify player if he is player_2
-                        second_player = {"action": "assign_turn", "order": "player_2"}
-                        self.SendToOther(channel, second_player, flag=3)
+                        self.client_pairs[i][0][2] = channel
 
                     still_checking = 0
                     break
@@ -259,7 +294,7 @@ class GameServer(Server):
     def Loop(self):
         while True:
             self.Pump()
-            # self.print_client_pairs()
+            self.print_client_pairs()
             sleep(0.0001)
 
 if __name__ == "__main__":

@@ -217,15 +217,15 @@ class Game:
         y = terrain_rect[1]
         col, row = self.board_position(x, y)
 
-        if self.counter_my_ship == self.maximum_ship:
-            flag = "err"
-            title = "ERROR! SHIP_DEPLOY_LIMIT\t"
-            message = "Ship deploy limit reached.\t"
-            dialog_box(flag, title, message)
-            return 0
+        if self.phase == "deploy_horizontal":
+            if self.counter_my_ship == self.maximum_ship:
+                flag = "err"
+                title = "ERROR! SHIP_DEPLOY_LIMIT\t"
+                message = "Ship deploy limit reached.\t"
+                dialog_box(flag, title, message)
+                return 0
 
-        elif self.phase == "deploy_horizontal":
-            if col > 9:
+            elif col > 9:
                 flag = "err"
                 title = "ERROR! SHIP_OUT_OF_RANGE\t"
                 message = "You are trying to deploy outside your own area.\nPlease choose one grid on the left side of yellow line."
@@ -253,7 +253,14 @@ class Game:
                         return 0
 
         elif self.phase == "deploy_vertical":
-            if col > 9:
+            if self.counter_my_ship == self.maximum_ship:
+                flag = "err"
+                title = "ERROR! SHIP_DEPLOY_LIMIT\t"
+                message = "Ship deploy limit reached.\t"
+                dialog_box(flag, title, message)
+                return 0
+
+            elif col > 9:
                 flag = "err"
                 title = "ERROR! SHIP_OUT_OF_RANGE\t"
                 message = "You are trying to deploy outside your own area.\nPlease choose one grid on the left side of yellow line."
@@ -602,11 +609,12 @@ class Game:
             to_server = {"action": "broadcast_request"}
             self.client_network.Send(to_server)        # Send request here
             data = self.client_network.PassData()    # get data here
-            # print "Data: ", data
-            # print self.phase
+            print "Data: ", data
+            print "Phase: ", self.phase
+            print "my_turn: ", self.my_turn
             # Checking game status
 
-            if data["action"] == "disconnected":
+            if not data or data["action"] == "disconnected":
                 flag = "err"
                 title = "ERROR! SERVER_OFFLINE"
                 message = "Server is offline.\nContact server administrator for further information.\nGame will close."
@@ -616,13 +624,6 @@ class Game:
             elif data["action"] == "matchmaking":
                 self.phase = "matchmaking"
 
-            elif data["action"] == "ready_response":
-                if data["ready_counter"] == 2:
-                    self.phase = "war"
-
-            elif data["action"] == "assign_turn":
-                self.my_turn = data["order"]
-
             elif data["action"] == "broadcast":
                 if data["status"] == "opponent_disconnected":
                     flag = "err"
@@ -631,16 +632,24 @@ class Game:
                     dialog_box(flag, title, message)
                     break
 
+                # Determine player order
+                elif data["order"] == "player_1":
+                    self.my_turn = "player_1"
+
+                elif data["order"] == "player_2":
+                    self.my_turn = "player_2"
+
+                # Turn switch
                 elif data["status"] == "player_1":
-                    if "player_1" == self.my_turn:
+                    if self.my_turn == "player_1":
                         self.phase = "my_turn"
-                    else:
+                    elif self.my_turn == "player_2":
                         self.phase = "enemy_turn"
 
                 elif data["status"] == "player_2":
-                    if "player_2" == self.my_turn:
+                    if self.my_turn == "player_2":
                         self.phase = "my_turn"
-                    else:
+                    elif self.my_turn == "player_1":
                         self.phase = "enemy_turn"
 
                 elif data["status"] == "deploy_phase" and deploy_phase_announcement == 0:
