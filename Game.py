@@ -33,7 +33,7 @@ class Game:
         self.my_turn = None
         # Contains image object to be rendered
         self.ships = []
-        self.cross = []
+        self.hit = []
         self.terrain = []
 
     def init_board(self):
@@ -200,14 +200,16 @@ class Game:
         mouseX, mouseY = pygame.mouse.get_pos()
         col, row = self.board_position(mouseX, mouseY)
         temp = None
-        for i in self.terrain:
-            if i.col == col and i.row == row:
-                temp = i
+        for i in range(len(self.terrain)):
+            if self.terrain[i].col == col and self.terrain[i].row == row:
+                if (self.phase == "my_turn" or self.phase == "enemy_turn") and col > 9:
+                    self.terrain[i].flag = "clicked"
+                temp = self.terrain[i]
+                break
 
         image = pygame.image.load("./assets/image/clicked.png")
-        # temp.image_clicked = image
-        # temp.flag = 1
         terrain_rect = self.window.blit(image, (temp.x, temp.y))
+
         pygame.display.flip()
 
         return terrain_rect
@@ -603,12 +605,17 @@ class Game:
 
         while self.running:
             # Networking loop
-            self.client_network.Loop()
+
 
             # Maintaining game status here
             to_server = {"action": "broadcast_request"}
             self.client_network.Send(to_server)        # Send request here
+            self.client_network.Loop()
+            self.client_network.Loop()
+            self.client_network.Loop()
             data = self.client_network.PassData()    # get data here
+
+            # self.client_network.Loop()
             print "Data: ", data
             print "Phase: ", self.phase
             print "my_turn: ", self.my_turn
@@ -633,11 +640,12 @@ class Game:
                     break
 
                 # Determine player order
-                elif data["order"] == "player_1":
-                    self.my_turn = "player_1"
+                elif "order" in data:
+                    if data["order"] == "player_1":
+                        self.my_turn = "player_1"
 
-                elif data["order"] == "player_2":
-                    self.my_turn = "player_2"
+                    elif data["order"] == "player_2":
+                        self.my_turn = "player_2"
 
                 # Turn switch
                 elif data["status"] == "player_1":
@@ -700,6 +708,10 @@ class Game:
 
             for line in lines:
                 line.render()
+
+            if len(self.hit) != 0:
+                for h in self.hit:
+                    h.render()
 
             if len(self.ships) != 0:
                 for ship in self.ships:

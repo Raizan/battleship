@@ -181,6 +181,7 @@ class GameServer(Server):
                 sender.Send(data)
 
             if temp_player_1 is None or temp_player_2 is None:
+                del data["order"]
                 receiver.Send(data)
                 sender.Send(data)
 
@@ -213,7 +214,7 @@ class GameServer(Server):
                                 elif index == 4:
                                     player_1 = channel
                                     player_2 = pair[3]
-                                temp_data = {"action": "broadcast", "status": pair[2], "order": None, "player_1": player_1, "player_2": player_2}
+                                temp_data = {"action": "broadcast", "status": pair[2], "player_1": player_1, "player_2": player_2}
 
                         # Room: Two players, probably in a game session
                         # Let's test it by using flag = 2
@@ -259,12 +260,12 @@ class GameServer(Server):
                         board_number = 1
                     # Extract row and col data
                     row = data["row"]
-                    col = data["col"]
+                    col = data["col"] - 10  # Normalize
                     # Update board state to attack result
-                    # If part of ship is there, give it explosion
+                    # If part of ship is there, give it hit
+                    print "board: ", board_number, "row: ", row, "col: ", col
                     if self.client_pairs[i][1][board_number][row][col] == 1:
-
-                        self.client_pairs[i][1][board_number][row][col] = 0
+                        self.client_pairs[i][1][board_number][row][col] = -1
                     # Update game status
                     if self.client_pairs[i][2] == "player_1":
                         self.client_pairs[i][2] = "player_2"
@@ -294,7 +295,7 @@ class GameServer(Server):
     def Loop(self):
         while True:
             self.Pump()
-            self.print_client_pairs()
+            # self.print_client_pairs()
             sleep(0.0001)
 
 if __name__ == "__main__":
