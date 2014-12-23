@@ -3,6 +3,7 @@ __author__ = "Reisuke"
 from scripts.DialogBox import *
 from scripts.GameObjects import *
 from Client import *
+from time import sleep
 
 
 class Game:
@@ -412,21 +413,52 @@ class Game:
         elif self.phase == "enemy_turn":
             info_decor_image = pygame.image.load("./assets/image/info_decor.png")
             rects["decor"] = self.window.blit(info_decor_image, (0, 320))
+            pygame.display.flip()
 
             info_help_image = pygame.image.load("./assets/image/info_help.png")
             rects["help"] = self.window.blit(info_help_image, (148, 320))
+            pygame.display.flip()
 
             info_about_image = pygame.image.load("./assets/image/info_about.png")
             rects["about"] = self.window.blit(info_about_image, (148, 339))
+            pygame.display.flip()
 
             info_status_image = pygame.image.load("./assets/image/info_status.png")
             rects["status"] = self.window.blit(info_status_image, (207, 320))
+            pygame.display.flip()
 
             button_horizontal_image = pygame.image.load("./assets/image/your_enemy_is_thinking.png")
             rects["announcement"] = self.window.blit(button_horizontal_image, (0, 360))
+            pygame.display.flip()
 
             ready_image = pygame.image.load("./assets/image/enemy_turn.png")
             rects["enemy_turn"] = self.window.blit(ready_image, (320, 320))
+            pygame.display.flip()
+
+        elif self.phase == "waiting":
+            info_decor_image = pygame.image.load("./assets/image/info_decor.png")
+            rects["decor"] = self.window.blit(info_decor_image, (0, 320))
+            pygame.display.flip()
+
+            info_help_image = pygame.image.load("./assets/image/info_help.png")
+            rects["help"] = self.window.blit(info_help_image, (148, 320))
+            pygame.display.flip()
+
+            info_about_image = pygame.image.load("./assets/image/info_about.png")
+            rects["about"] = self.window.blit(info_about_image, (148, 339))
+            pygame.display.flip()
+
+            info_status_image = pygame.image.load("./assets/image/info_status.png")
+            rects["status"] = self.window.blit(info_status_image, (207, 320))
+            pygame.display.flip()
+
+            button_horizontal_image = pygame.image.load("./assets/image/waiting_server.png")
+            rects["announcement"] = self.window.blit(button_horizontal_image, (0, 360))
+            pygame.display.flip()
+
+            ready_image = pygame.image.load("./assets/image/please_wait.png")
+            rects["please_wait"] = self.window.blit(ready_image, (320, 320))
+            pygame.display.flip()
 
         return rects
 
@@ -583,6 +615,25 @@ class Game:
             elif rects["announcement"].collidepoint(pos):
                 pass
 
+        elif self.phase == "waiting":
+            if rects["status"].collidepoint(pos):
+                self.menu_action("status")
+
+            elif rects["about"].collidepoint(pos):
+                self.menu_action("about")
+
+            elif rects["help"].collidepoint(pos):
+                self.menu_action("help")
+
+            elif rects["decor"].collidepoint(pos):
+                self.menu_action("decor")
+
+            elif rects["please_wait"].collidepoint(pos):
+                pass
+
+            elif rects["announcement"].collidepoint(pos):
+                pass
+
     def attack_ship(self, terrain_rect):
         x = terrain_rect[0]
         y = terrain_rect[1]
@@ -592,8 +643,48 @@ class Game:
             col, row = self.board_position(x, y)
             attack_data = {"action": "attack", "col": col, "row": row}
             self.client_network.Send(attack_data)
+            self.phase = "waiting"
             # Change col row coordinate to player grid coordinate on server
             # Send col row with flag "action : attack"
+
+    def update_board(self, board_state, board_counter):
+        if self.my_turn == "player_1":
+            self.state_player_board = board_state[0]
+            self.state_enemy_board = board_state[1]
+
+            if board_counter[0] == 0 and board_counter[0] is not None:
+                flag = "info"
+                title = "INFO: LOSE"
+                message = "You lose.\t\nGame will exit."
+                dialog_box(flag, title, message)
+                return "exit"
+
+            elif board_counter[1] == 0 and board_counter[1] is not None:
+                flag = "info"
+                title = "INFO: WIN"
+                message = "You win.\t\nGame will exit."
+                dialog_box(flag, title, message)
+                return "exit"
+
+        elif self.my_turn == "player_2":
+            self.state_player_board = board_state[1]
+            self.state_enemy_board = board_state[0]
+
+            if board_counter[0] == 0 and board_counter[0] is not None:
+                flag = "info"
+                title = "INFO: WIN"
+                message = "Congratulations! You win.\t\nGame will exit."
+                dialog_box(flag, title, message)
+                return "exit"
+
+            elif board_counter[1] == 0 and board_counter[1] is not None:
+                flag = "info"
+                title = "INFO: LOSE"
+                message = "Sorry. You lose.\t\nGame will exit."
+                dialog_box(flag, title, message)
+                return "exit"
+
+        return "continue"
 
     def run(self):
         # The game
@@ -604,15 +695,15 @@ class Game:
         deploy_phase_announcement = 0
 
         while self.running:
+            pygame.display.flip()
             # Networking loop
-
+            self.client_network.Loop()
 
             # Maintaining game status here
             to_server = {"action": "broadcast_request"}
             self.client_network.Send(to_server)        # Send request here
-            self.client_network.Loop()
-            self.client_network.Loop()
-            self.client_network.Loop()
+            # self.client_network.Loop()
+            # self.client_network.Loop()
             data = self.client_network.PassData()    # get data here
 
             # self.client_network.Loop()
@@ -628,10 +719,10 @@ class Game:
                 dialog_box(flag, title, message)
                 break
 
-            elif data["action"] == "matchmaking":
+            if data["action"] == "matchmaking":
                 self.phase = "matchmaking"
 
-            elif data["action"] == "broadcast":
+            if data["action"] == "broadcast":
                 if data["status"] == "opponent_disconnected":
                     flag = "err"
                     title = "ERROR! OPPONENT_DISCONNECTED"
@@ -640,7 +731,7 @@ class Game:
                     break
 
                 # Determine player order
-                elif "order" in data:
+                if "order" in data:
                     if data["order"] == "player_1":
                         self.my_turn = "player_1"
 
@@ -648,21 +739,26 @@ class Game:
                         self.my_turn = "player_2"
 
                 # Turn switch
-                elif data["status"] == "player_1":
+                if data["status"] == "player_1":
                     if self.my_turn == "player_1":
                         self.phase = "my_turn"
                     elif self.my_turn == "player_2":
                         self.phase = "enemy_turn"
 
-                elif data["status"] == "player_2":
+                if data["status"] == "player_2":
                     if self.my_turn == "player_2":
                         self.phase = "my_turn"
                     elif self.my_turn == "player_1":
                         self.phase = "enemy_turn"
 
-                elif data["status"] == "deploy_phase" and deploy_phase_announcement == 0:
+                if data["status"] == "deploy_phase" and deploy_phase_announcement == 0:
                     self.phase = "deploy_phase"
                     deploy_phase_announcement = 1
+
+                if "board_state" in data:
+                    win_or_lose = self.update_board(data["board_state"], data["board_counter"])
+                    if win_or_lose == "exit":
+                        break
 
             # Game processing
             if self.phase == "ready":

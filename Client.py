@@ -2,6 +2,7 @@ __author__ = "Reisuke"
 
 from PodSixNet.Connection import connection, ConnectionListener
 from ConfigParser import SafeConfigParser
+from time import sleep
 
 
 class Client(ConnectionListener):
@@ -24,6 +25,7 @@ class Client(ConnectionListener):
     def Loop(self):
         connection.Pump()
         self.Pump()
+        # sleep(0.001)
 
     # To get self.temp_data. Use this on Game class
     def PassData(self):

@@ -44,7 +44,8 @@ class GameServer(Server):
     def __init__(self, *args, **kwargs):
         Server.__init__(self, *args, **kwargs)
         self.clients = WeakKeyDictionary()
-        # [[room_full_flag, ready_state, player_who_get_first_turn], [board, board], status, player1, player2]
+        # [[room_full_flag, ready_state, player_who_get_first_turn],
+        # [board1, board2, player_owns_board1, player_owns_board2], status, player1, player2]
         # room_full_flag=1 means room is full
         self.client_pairs = []
         print 'Server launched'
@@ -195,10 +196,11 @@ class GameServer(Server):
     def BroadcastGameStatus(self, channel):
         player_1 = None
         player_2 = None
+        board_counter = self.WinningCheck(channel)
         for pair in self.client_pairs:
             for index in range(len(pair)):
                 if pair[index] == channel:
-                    temp_data = {"action": "broadcast", "status": pair[2], "order": None, "player_1": None, "player_2": None}
+                    temp_data = {"action": "broadcast", "status": pair[2], "board_state": pair[1], "board_counter": board_counter, "order": None, "player_1": None, "player_2": None}
                     # If only one player exists, broadcast to itself alone
                     if pair[0][0] == 0:
                         # Room: One player, probably still matchmaking
@@ -209,12 +211,12 @@ class GameServer(Server):
                         if len(pair) == 5:
                             if pair[0][2] == channel:
                                 if index == 3:
-                                    player_1 = channel
-                                    player_2 = pair[4]
-                                elif index == 4:
-                                    player_1 = channel
                                     player_2 = pair[3]
-                                temp_data = {"action": "broadcast", "status": pair[2], "player_1": player_1, "player_2": player_2}
+                                    player_1 = pair[4]
+                                elif index == 4:
+                                    player_2 = pair[4]
+                                    player_1 = pair[3]
+                                temp_data = {"action": "broadcast", "status": pair[2], "board_state": pair[1], "board_counter": board_counter, "player_1": player_1, "player_2": player_2}
 
                         # Room: Two players, probably in a game session
                         # Let's test it by using flag = 2
@@ -235,6 +237,8 @@ class GameServer(Server):
 
                     # Update board state to deploy_phase result
                     self.client_pairs[i][1][board_number] = data["my_board"]
+                    # To mark which board is player's board
+                    # self.client_pairs[i][1].append(j)
 
                     # Send ready_state to players if both are ready
                     if self.client_pairs[i][0][1] == 2:
@@ -249,6 +253,7 @@ class GameServer(Server):
                 break
 
     def UpdateBoard(self, channel, data):
+        print "Update board"
         still_checking = 1
         board_number = None
         for i in range(len(self.client_pairs)):
@@ -271,17 +276,41 @@ class GameServer(Server):
                         self.client_pairs[i][2] = "player_2"
                     elif self.client_pairs[i][2] == "player_2":
                         self.client_pairs[i][2] = "player_1"
+                    print self.client_pairs[i][2]
+                    still_checking = 0
+                    break
+
+            if still_checking == 0:
+                break
+
+    def WinningCheck(self, channel):
+        board_1_counter = None
+        board_2_counter = None
+        still_checking = 1
+        for room in self.client_pairs:
+            for index in range(len(room)):
+                if room[index] == channel:
+                    # if len(room[1]) == 4:
+                    board_1_counter = 0
+                    board_2_counter = 0
+                    for i in range(10):
+                        for j in range(10):
+                            if room[1][0][i][j] == 1:
+                                board_1_counter += 1
+
+                    for i in range(10):
+                        for j in range(10):
+                            if room[1][1][i][j] == 1:
+                                board_2_counter += 1
 
                     still_checking = 0
                     break
 
             if still_checking == 0:
                 break
-    #
-    # def WinningCheck(self):
-    #     for pair in self.client_pairs:
-    #         for index in len(pair):
-    #             if pair[index]
+
+        board_counter = [board_1_counter, board_2_counter]
+        return board_counter
 
     def print_client_pairs(self):
         for i in range(len(self.client_pairs)):
@@ -296,7 +325,7 @@ class GameServer(Server):
         while True:
             self.Pump()
             # self.print_client_pairs()
-            sleep(0.0001)
+            # sleep(0.0001)
 
 if __name__ == "__main__":
     # Reading configuration file for server settings
