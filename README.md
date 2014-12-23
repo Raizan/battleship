@@ -9,5 +9,8 @@ How to play:
 
 2. Client: Run Game.py
 
-Icon, ship, and terrain sprites downloaded from OpenGameArt.org
-which are licensed under Creative Commons.
+Icon and sprites downloaded from OpenGameArt.org which are
+licensed under Creative Commons.
+
+SFX and BGM downloaded from OpenGameArt.org
+and FreeSound.org which are licensed under Creative Commons.
